@@ -1215,6 +1215,10 @@ written entirely in Python.")
                         ;; These tests expect the 'apt' command to be available.
                         "and not test_apt_check "
                         "and not test_apt_install_substitutes "
+                        ;; Due to CVE-2022-39253, transport "file://" is not allowed by Git.
+                        ;; https://lore.kernel.org/git/xmqq4jw1uku5.fsf@gitster.g/T/#u
+                        "and not test_submodule "
+                        "and not test_clone_submodule_git "
                         (if (not (string-prefix? "x86_64" system))
                             ;; These tests either assume the machine is
                             ;; x86_64, or require a cross-compiler to target
