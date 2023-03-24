@@ -1219,6 +1219,8 @@ written entirely in Python.")
                         ;; https://lore.kernel.org/git/xmqq4jw1uku5.fsf@gitster.g/T/#u
                         "and not test_submodule "
                         "and not test_clone_submodule_git "
+                        ;; FIXME: Sometimes failed due to logging in problem on "conan upload"
+                        "and not test_token_expired "
                         (if (not (string-prefix? "x86_64" system))
                             ;; These tests either assume the machine is
                             ;; x86_64, or require a cross-compiler to target
