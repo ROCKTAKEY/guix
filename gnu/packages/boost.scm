@@ -18,6 +18,7 @@
 ;;; Copyright © 2021, 2022 Greg Hogan <code@greghogan.com>
 ;;; Copyright © 2021 Franck Pérignon <franck.perignon@univ-grenoble-alpes.fr>
 ;;; Copyright © 2021 Aleksandr Vityazev <avityazev@posteo.org>
+;;; Copyright © 2025 ROCKTAKEY <rocktakey@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -360,6 +361,30 @@ across a broad spectrum of applications.")
      (modify-inputs (package-inputs boost)
        (delete "python-minimal-wrapper")))
     (properties '((hidden? . #t)))))
+
+(define-public boost-for-siv3d
+  (package
+    (inherit boost)
+    (version "1.74.0")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append "https://boostorg.jfrog.io/artifactory/main/release/"
+                                  version "/source/boost_"
+                                  (version-with-underscores version) ".tar.bz2"))
+              (sha256
+               (base32
+                "1c8nw4jz17zy2y27h7p554a5jza1ymz8phkz71p9181ifx8c3gw3"))))
+    (arguments
+     (substitute-keyword-arguments (package-arguments boost)
+       ((#:phases phases)
+        #~(modify-phases #$phases
+            (add-before 'configure 'substitute-for-python-compatibility
+              (lambda _
+                ;; For compatibility to Python 3.10.
+               ;; Retrived from future commit:
+               ;; https://github.com/boostorg/python/commit/cbd2d9f033c61d29d0a1df14951f4ec91e7d05cd
+               (substitute* '("libs/python/src/exec.cpp")
+                 (("_Py_fopen") "fopen"))))))))))
 
 (define-public boost-sync
   (let ((commit "e690de2d30e2f1649ff500c9a6f3539814994b1c")
