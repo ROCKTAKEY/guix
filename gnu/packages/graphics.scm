@@ -38,6 +38,7 @@
 ;;; Copyright © 2023 Eric Bavier <bavier@posteo.net>
 ;;; Copyright © 2023, 2024 Artyom V. Poptsov <poptsov.artyom@gmail.com>
 ;;; Copyright © 2024 Ivan Vilata-i-Balaguer <ivan@selidor.net>
+;;; Copyright © 2025 ROCKTAKEY <rocktakey@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -69,6 +70,7 @@
   #:use-module (gnu packages compression)
   #:use-module (gnu packages cpp)
   #:use-module (gnu packages crypto)
+  #:use-module (gnu packages curl)
   #:use-module (gnu packages datastructures)
   #:use-module (gnu packages documentation)
   #:use-module (gnu packages flex)
@@ -3154,3 +3156,80 @@ environment.  It supports drawing freehand as well as basic shapes and text.
 It features cut-and-paste for irregular regions or polygons.")
     (home-page "https://www.gnu.org/software/gpaint/")
     (license license:gpl3+)))
+
+(define-public siv3d
+  (package
+    (name "siv3d")
+    (version "0.6.15")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/Siv3D/OpenSiv3D")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "1wigbpijv6f58i1dinv2mnffgcxnm0nw85q6pgc1ywhz9kd4qspv"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list
+      #:phases #~(modify-phases %standard-phases
+                   (add-before 'configure 'set-cwd
+                     (lambda* (#:key inputs propagated-inputs outputs
+                               #:allow-other-keys)
+                       (chdir "Linux")
+                       (format #t "input: ~a" inputs)
+                       (format #t "propagated-input: ~a" propagated-inputs)))
+                   (delete 'check)
+                   (add-after 'install 'check
+                     (lambda* (#:key inputs outputs tests? #:allow-other-keys)
+                       (when tests?
+                         (with-directory-excursion "../Linux/App"
+                           (let ((configure-flags (list
+                                                   "-DBUILD_TESTING:BOOL=ON"
+                                                   (string-append
+                                                    "-DSiv3D_DIR="
+                                                    (assoc-ref outputs "out")
+                                                    "/lib/cmake/Siv3D")))
+                                 (configure (assoc-ref %standard-phases
+                                                       'configure))
+                                 (build (assoc-ref %standard-phases
+                                                   'build))
+                                 (check (assoc-ref %standard-phases
+                                                   'check)))
+                             ;; #:outputs is needed for -DCMAKE_INSTALL_PREFIX
+                             (configure #:inputs inputs
+                                        #:outputs '(("out" . "/tmp"))
+                                        #:configure-flags configure-flags)
+                             (build #:inputs inputs)
+                             ;; Home directory is used to create cache.
+                             (setenv "HOME" "/tmp")
+                             (check)))))))))
+    (propagated-inputs (list alsa-lib
+                             ;; Due to incompatibility with Boost.Geometry
+                             boost-for-siv3d
+                             curl
+                             ffmpeg
+                             gtk+
+                             ;; Due to GifQuantizeBuffer
+                             giflib-for-siv3d
+                             glu
+                             harfbuzz
+                             mpg123
+                             opencv
+                             opus
+                             opusfile
+                             soundtouch
+                             libtiff
+                             libjpeg-turbo
+                             libvorbis
+                             libwebp
+                             libxft
+                             util-linux
+                             xorg-server))
+    (native-inputs (list pkg-config))
+    (home-page "https://siv3d.github.io/")
+    (synopsis "C++20 framework for creative coding")
+    (description "Siv3D (OpenSiv3D) is a C++20 framework for creative coding
+(2D/3D games, media art, visualizers, and simulators).")
+    (license license:expat)))
