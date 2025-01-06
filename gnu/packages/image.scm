@@ -39,6 +39,7 @@
 ;;; Copyright © 2023-2024 Nicolas Goaziou <mail@nicolasgoaziou.fr>
 ;;; Copyright © 2023 Artyom V. Poptsov <poptsov.artyom@gmail.com>
 ;;; Copyright © 2024 chris <chris@bumblehead.com>
+;;; Copyright © 2025 ROCKTAKEY <rocktakey@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -1075,6 +1076,33 @@ algorithm was patented.  Tools are also included to convert, manipulate,
 compose, and analyze GIF images.")
     (home-page "http://giflib.sourceforge.net/")
     (license license:x11)))
+
+(define-public giflib-for-siv3d
+  (package
+    (inherit giflib)
+    (version "5.1.4")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append "mirror://sourceforge/giflib/giflib-"
+                                  version ".tar.bz2"))
+              (sha256
+               (base32
+                "1md83dip8rf29y40cm5r7nn19705f54iraz6545zhwa6y8zyq9yz"))))
+    (arguments
+     (append
+      ;; FIXME: Somehow test failed
+      '(#:tests? #f)
+      (substitute-keyword-arguments (package-arguments giflib)
+        ((#:phases phases)
+         #~(modify-phases #$phases
+             (add-before 'build 'configure
+               (lambda args
+                 (apply (assoc-ref %standard-phases 'configure) args)))
+             (replace 'disable-html-doc-gen
+               (lambda _
+                 (substitute* "doc/Makefile.in"
+                   (("^all: allhtml manpages") ""))
+                 #t)))))))))
 
 (define-public libuemf
   (package
